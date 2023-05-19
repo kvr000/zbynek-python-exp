@@ -1,2 +1,6 @@
+boto3
 fastapi
 mangum
+psycopg2-binary
+sqlmodel
+sqlalchemy
