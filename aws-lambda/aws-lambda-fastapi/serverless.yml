@@ -160,8 +160,8 @@ functions:
       - http:
           path: /
           method: GET
-  # The user_get function will be triggered on a GET /user/{id} and will execute the user.get function
-  user_get:
+  # The user functions will be triggered on ANY /user/** and will execute routed API
+  user_all:
     handler: app.main.handler
     dependsOn:
       - FastApiDb
@@ -169,52 +169,8 @@ functions:
     environment: *FASTAPI_LAMBDA_ENV
     events:
       - http:
-          path: api/users/{id}
-          method: GET
-  # The user_post function will be triggered on a POST /user and will execute the user.post function
-  user_post:
-    handler: app.main.handler
-    dependsOn:
-      - FastApiDb
-    vpc: *FASTAPI_LAMBDA_VPC
-    environment: *FASTAPI_LAMBDA_ENV
-    events:
-      - http:
-          path: api/users/
-          method: POST
-  # The user_delete function will be triggered on a DELETE /user/{id} and will execute the user.delete function
-  user_delete:
-    handler: app.main.handler
-    dependsOn:
-      - FastApiDb
-    vpc: *FASTAPI_LAMBDA_VPC
-    environment: *FASTAPI_LAMBDA_ENV
-    events:
-      - http:
-          path: api/users/{id}
-          method: DELETE
-  # The user_put function will be triggered on a PUT /user/{id} and will execute the user.put function
-  user_put:
-    handler: app.main.handler
-    dependsOn:
-      - FastApiDb
-    vpc: *FASTAPI_LAMBDA_VPC
-    environment: *FASTAPI_LAMBDA_ENV
-    events:
-      - http:
-          path: api/users/{id}
-          method: PUT
-  # The user_list function will be triggered on a GET /user/ and will execute the user.list function
-  user_list:
-    handler: app.main.handler
-    dependsOn:
-      - FastApiDb
-    vpc: *FASTAPI_LAMBDA_VPC
-    environment: *FASTAPI_LAMBDA_ENV
-    events:
-      - http:
-          path: api/users/
-          method: GET
+          path: api/users/{proxy+}
+          method: ANY
 
 
 # This is th custom config ...
