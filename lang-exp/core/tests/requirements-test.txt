@@ -1,2 +1,3 @@
 pytest==7.3.0
 pytest-timeout==2.1.0
+ordered-enum==0.0.8
