@@ -1,11 +1,11 @@
-#This is the name of the service
+# This is the name of the service
 service: aws-lambda-fastapi
 
-#This is the common serverless config of the project
+# This is the common serverless config of the project
 provider:
-  #The next 2 lines specify the python3.10 kernel lambda function in europe
+  # The next 3 lines specify the python3.11 kernel lambda function in us-west-2
   name: aws
-  runtime: python3.10
+  runtime: python3.11
   region: us-west-2
   memorySize: 256
   timeout: 30
@@ -188,13 +188,11 @@ custom:
       - rds
 
 
-#This specify the plugins to use
+# This specifies the plugins to use
 plugins:
   - serverless-python-requirements
   - serverless-vpc-plugin
-  #- serverless-dependson-plugin
-
-# The package tells what should be included and excluded from the zip package
+  - serverless-dependson-plugin
 package:
   exclude:
     - venv/**
