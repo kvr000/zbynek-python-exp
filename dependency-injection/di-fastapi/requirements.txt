@@ -1,0 +1,8 @@
+boto3
+pydantic
+fastapi
+mangum
+psycopg2-binary
+sqlmodel
+sqlalchemy
+dependency-injector

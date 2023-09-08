@@ -1,0 +1,205 @@
+# This is the name of the service
+service: aws-lambda-fastapi
+
+# This is the common serverless config of the project
+provider:
+  # The next 3 lines specify the python3.11 kernel lambda function in us-west-2
+  name: aws
+  runtime: python3.11
+  region: us-west-2
+  memorySize: 256
+  timeout: 30
+  versionFunctions: false
+  # This specify environment variables common to all the lambdas
+  environment:
+    # This will define an environment variable BUCKET with the name of the bucket created on line 68
+    BUCKET:
+      Ref: UserBucket
+  # This describes the permissions common to all the lambdas
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action:
+            - "s3:*"
+          Resource:
+            - "*"
+        - Effect: "Allow"
+          Action:
+            - "rds-db:connect"
+          Resource:
+            - "*"
+ 
+
+resources:
+  Resources:
+    UserBucket:
+      Type: AWS::S3::Bucket
+    MainVpc:
+      Type: AWS::EC2::VPC
+      Properties:
+        CidrBlock: "10.0.0.0/16"
+    MainSubnetA:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref MainVpc
+        AvailabilityZone: us-west-2a
+        CidrBlock: "10.0.0.0/24"
+    MainSubnetB:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref MainVpc
+        AvailabilityZone: us-west-2b
+        CidrBlock: "10.0.1.0/24"
+    FastApiDbSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Allow all inbound traffic
+        VpcId: !Ref MainVpc
+        SecurityGroupIngress:
+          - IpProtocol: -1
+            CidrIp: 0.0.0.0/0
+    FastApiLambdaSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Allow traffic to Postgres
+        VpcId: !Ref MainVpc
+        SecurityGroupEgress:
+          - IpProtocol: tcp
+            FromPort: 5432
+            ToPort: 5432
+            CidrIp: 0.0.0.0/0
+    FastApiDbSubnetGroup:
+      Type: AWS::RDS::DBSubnetGroup
+      Properties:
+        DBSubnetGroupDescription: FastApiDb subnet group
+        SubnetIds:
+          - !Ref MainSubnetA
+          - !Ref MainSubnetB
+    FastApiDb:
+      Type: AWS::RDS::DBInstance
+      Properties:
+        Engine: postgres
+        DBInstanceIdentifier: FastApiDb
+        AllocatedStorage: 20
+        DBInstanceClass: db.t3.micro
+        EngineVersion: 14.6
+        MasterUsername: postgres
+        MasterUserPassword: my-secret-password0
+        EnableIAMDatabaseAuthentication: true
+        PubliclyAccessible: false
+        BackupRetentionPeriod: 0
+        VPCSecurityGroups:
+          - !Ref FastApiDbSecurityGroup
+        DBSubnetGroupName: !Ref FastApiDbSubnetGroup
+        DBName: fastapiexp
+      CreationPolicy:
+        ResourceSignal:
+          Timeout: PT10M  # Timeout value for resource creation (5 minutes)
+    #InitFastApiDb:
+    #  Type: AWS::CloudFormation::Init
+    #  DependsOn: FastApiDb
+    #  Properties:
+    #    Metadata:
+    #      AWS::CloudFormation::Init:
+    #        config:
+    #          files:
+    #            /tmp/create-tables.sql:
+    #              content: |
+    #                CREATE TABLE IF NOT EXISTS UserRec (
+    #                  id SERIAL PRIMARY KEY,
+    #                  version int,
+    #                  name VARCHAR(255)
+    #                );
+    #          commands:
+    #            01_run_sql:
+    #              command: |
+    #                /usr/bin/psql \
+    #                  --host=`!GetAtt FastApiDb.Endpoint.Address` \
+    #                  --username=postgres \
+    #                  --dbname=fastapiexp \
+    #                  --password=my-secret-password0 \
+    #                  --file=/tmp/create-tables.sql
+    #WaitConditionHandle:
+    #  Type: AWS::CloudFormation::WaitConditionHandle
+    #WaitCondition:
+    #  Type: AWS::CloudFormation::WaitCondition
+    #  DependsOn:
+    #    - FastApiDb
+    #  Properties:
+    #    Handle: !Ref WaitConditionHandle
+    #    Timeout: '300' # Set the timeout to 5 minutes
+  Outputs:
+    FastApiDbEndpointAddress:
+      Value: !GetAtt FastApiDb.Endpoint.Address
+      Export:
+        Name: FastApiDbEndpointAddress
+
+
+# This is the configuration of the different lambda function we want to deploy
+functions:
+  # The homepage function will be triggered on a GET / and will execute the handler function
+  homepage:
+    handler: app.main.handler
+    dependsOn:
+      - FastApiDb
+    environment: &FASTAPI_LAMBDA_ENV
+      # The Outputs variables may not be handled properly by serverless and for initial request, hardcoded value may be required:
+      #FASTAPIEXP_DB_HOST: "abcd"
+      FASTAPIEXP_DB_HOST: !ImportValue FastApiDbEndpointAddress
+      FASTAPIEXP_DB_PORT: 5432
+      FASTAPIEXP_DB_NAME: fastapiexp
+      FASTAPIEXP_DB_USER: "postgres"
+      FASTAPIEXP_DB_PASS: "my-secret-password0"
+    vpc: &FASTAPI_LAMBDA_VPC
+      securityGroupIds:
+        - !Ref FastApiLambdaSecurityGroup
+      subnetIds:
+        - !Ref MainSubnetA
+    events:
+      - http:
+          path: /
+          method: GET
+  # The user functions will be triggered on ANY /user/** and will execute routed API
+  user_all:
+    handler: app.main.handler
+    dependsOn:
+      - FastApiDb
+    vpc: *FASTAPI_LAMBDA_VPC
+    environment: *FASTAPI_LAMBDA_ENV
+    events:
+      - http:
+          path: api/users/{proxy+}
+          method: ANY
+
+
+# This is th custom config ...
+custom:
+  # ... for the serverless-python-requirements plugin
+  pythonRequirements:
+    dockerizePip: True
+  vpcConfig:
+    enabled: true
+    cidrBlock: '10.0.0.0/16'
+    zones:
+      - us-west-2a
+      - us-west-2b
+    subnetGroups:
+      - rds
+
+
+# This specifies the plugins to use
+plugins:
+  - serverless-python-requirements
+  - serverless-vpc-plugin
+  - serverless-dependson-plugin
+package:
+  exclude:
+    - venv/**
+    - node_modules/**
+    - ./**
+    - "**/__pycache__/**"
+    - "**/*.pyc"
+  include:
+    - app/**
+
