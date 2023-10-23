@@ -16,43 +16,10 @@ else:
 	logging.basicConfig(level=logging.INFO)
 
 container = Container()
-container.wire(
-	packages=[
-		"app.main",
-		"app.api",
-		"app.api.api",
-		"app.db",
-		"app",
-	],
-	modules=[
-		"app.main",
-		"app.api",
-		"app.api.api",
-		"app.db",
-		"app",
-	]
-)
-
 
 app = FastAPI()
 app.container = container
-
-container.wire(
-	packages=[
-		"app.main",
-		"app.api",
-		"app.api.api",
-		"app.db",
-		"app",
-	],
-	modules=[
-		"app.main",
-		"app.api",
-		"app.api.api",
-		"app.db",
-		"app",
-	]
-)
+app.container.init_resources()
 
 app.include_router(api_router, prefix="")
 

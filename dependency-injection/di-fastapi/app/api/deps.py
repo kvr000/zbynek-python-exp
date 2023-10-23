@@ -13,22 +13,11 @@ class DbContainer(containers.DeclarativeContainer):
 
     wiring_config = containers.WiringConfiguration(
         packages=[
-            "app.main",
-            "app.api",
-            "app.api.api",
-            "app.db",
             "app",
         ],
-        modules=[
-            "app.main",
-            "app.api",
-            "app.api.api",
-            "app.db",
-            "app",
-        ]
     )
 
-    database: Database = providers.Singleton(Database, db_name=AppConfig.db_name)
+    database: providers.Factory[Database] = providers.Factory(Database, db_name=AppConfig.db_name)
 
 
 @inject
@@ -37,19 +26,8 @@ class Container(containers.DeclarativeContainer):
 
     wiring_config = containers.WiringConfiguration(
         packages=[
-            "app.main",
-            "app.api",
-            "app.api.api",
-            "app.db",
             "app",
         ],
-        modules=[
-            "app.main",
-            "app.api",
-            "app.api.api",
-            "app.db",
-            "app",
-        ]
     )
 
     db_container: DbContainer = providers.Container(DbContainer)

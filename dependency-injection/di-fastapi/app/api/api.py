@@ -1,7 +1,7 @@
 from dependency_injector.wiring import inject, Provide, Provider
 from fastapi import Depends, FastAPI, APIRouter
 
-from app.api.deps import Container
+from app.api.deps import Container, DbContainer
 from app.db.database import Database
 
 api_router = APIRouter()
@@ -11,8 +11,8 @@ def root():
     return {"message": "Hello World"}
 
 
-@inject
 @api_router.get("/db/")
-def db(database: Provider[Database] = Depends(Provide[Container.db_container.database])):
-    database.provider().getConnection()
+@inject
+def db(database: Database = Depends(Provide[DbContainer.database])):
+    database.getConnection()
     return {"message": "database ok"}
