@@ -1,4 +1,4 @@
-#!/usr/bin/env java --source 11
+#!/usr/bin/env -S java --source 11
 
 import java.util.regex.Pattern;
 
