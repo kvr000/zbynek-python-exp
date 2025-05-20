@@ -43,7 +43,7 @@ class RacingGame:
         self.player_dir = 0
 
         self.next_update_time = time.time()
-        self.speed = 10.0
+        self.speed = 20.0
         self.distance = 0
 
         for _ in range(ROWS):
@@ -79,7 +79,7 @@ class RacingGame:
 
     def update(self) -> None:
         now = time.time()
-        if self.state == 1 and now >= self.next_update_time:
+        while self.state == 1 and now >= self.next_update_time:
             if self.update_car():
                 self.update_track()
 
@@ -87,7 +87,7 @@ class RacingGame:
 
                 self.speed = min(100.0, self.speed + 0.02)
 
-                self.next_update_time = now + 1 / self.speed
+                self.next_update_time = self.next_update_time + 1 / self.speed
 
     def draw(self, screen: Screen) -> None:
         screen.clear()
@@ -145,6 +145,8 @@ class RacingGame:
             self.player_dir = 1
         elif key.name == "UP":
             self.player_dir = 0
+        else:
+            return
         if self.state == 0:
             self.state = 1
             self.next_update_time = time.time()
