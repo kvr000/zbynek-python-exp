@@ -4,6 +4,7 @@ Simple stay on track racing game.
 
 Created as inspiration for children what to try to code.
 
+![screenshot](doc/image/screenshot.png)
 
 ## License
 
