@@ -18,6 +18,10 @@ ROWS = HEIGHT // CELL_HEIGHT
 TRACK_WIDTH = 20
 
 class RacingGame:
+    start_speed: float = 20.0
+    max_speed: float = 84.0
+    acceleration: float = 0.02
+
     state: int # -1 crashed, 0 pause, 1 running
     track: List[Tuple[int, int]]
     track_offset: int
@@ -49,7 +53,7 @@ class RacingGame:
         self.player_dir = 0
 
         self.next_update_time = time.time()
-        self.speed = 20.0
+        self.speed = self.start_speed
         self.distance = 0
 
         for _ in range(ROWS):
@@ -72,16 +76,16 @@ class RacingGame:
         self.offset_counter -= 1
 
     def update_car(self) -> bool:
+        if self.player_pos < self.track[1][0] or self.player_pos >= self.track[1][1]:
+            self.state = -1
+            return False
+
         if self.player_dir < 0 and self.player_pos > 0:
             self.player_pos -= 1
         elif self.player_dir > 0 and self.player_pos < COLS - 1:
             self.player_pos += 1
 
-        if self.player_pos < self.track[1][0] or self.player_pos >= self.track[1][1]:
-            self.state = -1
-            return False
-        else:
-            return True
+        return True
 
     def update(self) -> None:
         now = time.time()
@@ -91,7 +95,7 @@ class RacingGame:
 
                 self.distance += 1
 
-                self.speed = min(84.0, self.speed + 0.02)
+                self.speed = min(self.max_speed, self.speed + self.acceleration)
 
                 self.next_update_time = self.next_update_time + 1 / self.speed
 
@@ -109,11 +113,11 @@ class RacingGame:
             # Kerbs
             screen.draw.filled_rect(
                 Rect(left, top, CELL_WIDTH, CELL_HEIGHT),
-                ["white", "red"][(y + self.kerb_offset) & 1]
+                ("white", "red")[(y + self.kerb_offset) & 1]
             )
             screen.draw.filled_rect(
                 Rect(right - CELL_WIDTH, top, CELL_WIDTH, CELL_HEIGHT),
-                ["white", "red"][(y + self.kerb_offset + 1) & 1]
+                ("white", "red")[(y + self.kerb_offset + 1) & 1]
             )
 
             # Track surface
@@ -131,7 +135,7 @@ class RacingGame:
 
         # Crash
         if self.state < 0:
-            screen.draw.text("You crashed!", center=(WIDTH // 2, HEIGHT // 2), fontsize=CELL_HEIGHT * 10, color="black")
+            screen.draw.text("i crashed!", center=(WIDTH // 2, HEIGHT // 2), fontsize=CELL_HEIGHT * 10, color="black")
 
     def draw_car(self, surface: pygame.Surface, cell_rect: pygame.Rect, color: tuple = (64, 64, 192)) -> None:
         car_surface = pygame.Surface((CELL_WIDTH * 3, CELL_HEIGHT * 3), pygame.SRCALPHA)
@@ -168,7 +172,7 @@ class RacingGame:
         for dx, dy in tire_offsets:
             pygame.draw.circle(car_surface, (0, 0, 0), (int(cx + dx), int(cy + dy)), tire_radius)
 
-        rotated = pygame.transform.rotate(car_surface, (45, 0, -45)[self.player_dir + 1])
+        rotated = pygame.transform.rotozoom(car_surface, (45, 0, -45)[self.player_dir + 1], 1)
         target_rect = rotated.get_rect(center=cell_rect.center)
         surface.blit(rotated, target_rect)
 
