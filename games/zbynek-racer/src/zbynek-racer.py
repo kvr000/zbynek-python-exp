@@ -8,6 +8,9 @@ import pgzrun  # pgzero runtime
 from pgzero.screen import Screen
 from pygame import Rect
 import pygame
+import pyaudio
+import math
+import numpy as np
 
 # Constants
 WIDTH = 800
@@ -17,6 +20,51 @@ CELL_HEIGHT = 10
 COLS = WIDTH // CELL_WIDTH
 ROWS = HEIGHT // CELL_HEIGHT
 TRACK_WIDTH = 20
+
+class EngineSound:
+
+    SAMPLE_RATE = 44100
+    BUFFER_SIZE = 1024
+
+    def __init__(self):
+        self.frequency = 200.0     # Hz
+        self.volume = 1
+        self.running = True
+        self.phase = 0
+
+        self.p = pyaudio.PyAudio()
+        self.stream = self.p.open(
+            format=pyaudio.paFloat32,
+            channels=1,
+            rate=self.SAMPLE_RATE,
+            output=True,
+            frames_per_buffer=self.BUFFER_SIZE,
+            stream_callback=self.callback,
+        )
+
+        self.stream.start_stream()
+
+    def callback(self, in_data, frame_count, time_info, status):
+        logging.error("Called callback")
+        samples = np.zeros(frame_count, dtype=np.float32)
+
+        for i in range(frame_count):
+            samples[i] = self.volume * math.sin(self.phase)
+            self.phase += 2.0 * math.pi * self.frequency # / self.SAMPLE_RATE
+            if self.phase > 2.0 * math.pi:
+                self.phase -= 2.0 * math.pi
+
+        return (samples.tobytes(), pyaudio.paContinue)
+
+    def set_rpm(self, rpm: float):
+        # Simple RPM → frequency mapping
+        self.frequency = 80.0 + rpm * 0.03
+
+    def stop(self):
+        self.running = False
+        self.stream.stop_stream()
+        self.stream.close()
+        self.p.terminate()
 
 class RacingGame:
     start_speed: float = 20.0
@@ -42,6 +90,8 @@ class RacingGame:
 
     def __init__(self):
         self.initialize_game()
+        self.engine = EngineSound()
+        self.engine.set_rpm(10000)
 
     def initialize_game(self) -> None:
         self.state = 0
