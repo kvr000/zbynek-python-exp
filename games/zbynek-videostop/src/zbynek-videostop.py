@@ -29,10 +29,20 @@ class VideostopGame:
         6: [(0.25, 0.25), (0.25, 0.5), (0.25, 0.75), (0.75, 0.25), (0.75, 0.5), (0.75, 0.75)]
     }
 
+    dice: list[int] = []
+    rolling: bool = True
+    last_ticks: int
+    roll_interval: int
+
+    counter: int = 0
+    success: int = 0
+
+    exiting: bool = False
+
     def __init__(self):
         pygame.init()
 
-        self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
+        self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT), vsync=True)
         pygame.display.set_caption("Videostop")
 
         self.clock = pygame.time.Clock()
@@ -112,15 +122,16 @@ class VideostopGame:
         pygame.display.flip()
 
     def quit(self):
-        pygame.quit()
-        sys.exit()
+        self.exiting = True
 
     def run(self):
-        while True:
-            self.clock.tick(60)
+        while not self.exiting:
+            self.clock.tick(60) # in case vsync does not work
             self.handle_events()
             self.update()
             self.draw()
+
+        pygame.quit()
 
         return 0
 
