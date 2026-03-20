@@ -27,3 +27,5 @@ var/
 .serverless
 
 node_modules/
+
+models_compressed/

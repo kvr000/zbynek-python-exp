@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 import math
 
-from ursina import Ursina, DirectionalLight, AmbientLight, Entity, Cylinder, color, copy, camera, time, Mesh, Vec3
-
-app = Ursina()
-DirectionalLight()
-AmbientLight(color=color.rgba(100,100,100,0.5))
+from ursina import Ursina, DirectionalLight, AmbientLight, Entity, Cylinder, color, copy, camera, time, Mesh, Vec3, \
+    application
 
 
 class Meshes:
@@ -34,6 +31,13 @@ class Meshes:
                 triangles.append((0, i + 2, i + 1))
 
         return Mesh(vertices=vertices, triangles=triangles, mode='triangle')
+
+
+app = Ursina()
+DirectionalLight()
+AmbientLight(color=color.rgba(100,100,100,0.5))
+
+stopped = False
 
 
 class RaceCar(Entity):
@@ -110,14 +114,21 @@ class RaceCar(Entity):
         self.wheels.append(make_wheel( wheel_position, -1.5))
 
     def update(self):
-        self.rotation_y += 60 * time.dt
-        for w in self.wheels:
-            w.rotation_x += 600 * time.dt
-            pass
+        if not stopped:
+            self.rotation_y += 60 * time.dt
+            for w in self.wheels:
+                w.rotation_x += 600 * time.dt
+                pass
 
 
 car = RaceCar()
 
+def input(key):
+    global stopped
+    if key == 'space':
+        stopped = not stopped
+    elif key == 'escape':
+        application.quit()
 
 # Camera
 camera.position = (0, 3, -8)
